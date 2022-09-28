@@ -3,33 +3,37 @@ package config
 import (
 	"time"
 
+	"github.com/caarlos0/env/v6"
+
 	mylog "github.com/alexveli/astral-praktika/pkg/log"
 )
 
 type (
 	Config struct {
 		Postgres PostgresConfig
-		Accrual  AccrualConfig
+		Storage  StorageConfig
+		Keeper   KeeperConfig
 		Server   HTTPServerConfig
-		Client   HTTPClientConfig
 		Hash     HashConfig
 		Auth     AuthConfig
 	}
+	StorageConfig struct {
+		StorageDriver string `env:"STORAGE_DRIVER" envDefault:"POSTGRES"`
+	}
 	PostgresConfig struct {
-		DatabaseURI string        `env:"DATABASE_URI" envDefault:"postgres://user:1234567890qwerty@localhost:5432/gophermart"`
+		DatabaseURI string        `env:"DATABASE_URI,unset"`
 		Timeout     time.Duration `env:"DATABASE_TIMEOUT" envDefault:"30s"`
 	}
-	HTTPClientConfig struct {
-		AccrualSystemAddress string        `env:"ACCRUAL_SYSTEM_ADDRESS"`
-		AccrualSystemGetRoot string        `env:"ACCRUAL_URL,required" envDefault:"/api/orders/"`
-		RetryInterval        time.Duration `env:"RETRY_INTERVAL,required" envDefault:"1s"`
-		RetryLimit           int           `env:"RETRY_LIMIT,required" envDefault:"10"`
-	}
-	AccrualConfig struct {
-		SendInterval time.Duration `env:"SEND_INTERVAL" envDefault:"1s"`
+	KeeperConfig struct {
+		AccessCount      int64         `env:"ACCESS_COUNT" envDefault:"3"`
+		ExpirationPeriod time.Duration `env:"EXPIRATION_PERIOD" envDefault:"72h"`
+		SecretLength     int64         `env:"SECRET_LENGTH" envDefault:"500"`
+		ExpireExisting   bool          `env:"EXPIRE_EXISTING" envDefault:"true"`
+		KeyLength        int64         `env:"KEY_LENGTH" envDefault:"10"`
 	}
 	HTTPServerConfig struct {
-		RunAddress string `env:"RUN_ADDRESS"`
+		RunAddress      string        `env:"RUN_ADDRESS" envDefault:"127.0.0.1:8081"`
+		ShutdownTimeout time.Duration `env:"SHUTDOWN_TIMEOUT" envDefault:"2s"`
 	}
 	HashConfig struct {
 		Key string `env:"KEY" envDefault:"j3n4b%21&#"`

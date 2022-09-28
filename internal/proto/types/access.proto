@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package types.v1beta1;
+
+option go_package = "/proto";
+
+import "google/protobuf/timestamp.proto";
+
+message Access {
+  int64 userID = 1;
+  string secretID = 2;
+  google.protobuf.Timestamp accessed_at = 5;
+}

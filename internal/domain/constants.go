@@ -1,9 +1,9 @@
 package domain
 
 const (
-	NEW        = "NEW"
-	PROCESSING = "PROCESSING"
-	INVALID    = "INVALID"
-	PROCESSED  = "PROCESSED"
-	REGISTERED = "REGISTERED"
+	ACCESS      = "ACCESS"
+	REFRESH     = "REFRESH"
+	POSTGRES    = "POSTGRES"
+	MAP         = "MAP"
+	DatabaseUri = "DATABASE_URI"
 )

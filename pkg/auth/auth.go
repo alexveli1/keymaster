@@ -4,20 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/alexveli/astral-praktika/internal/config"
 	"github.com/alexveli/astral-praktika/internal/domain"
+	"github.com/alexveli/astral-praktika/internal/proto"
 	mylog "github.com/alexveli/astral-praktika/pkg/log"
 )
-
-var ErrInvalidAccessToken = errors.New("invalid auth token")
-var ErrUserDoesNotExist = errors.New("user does not exist")
-var ErrUserAlreadyExists = errors.New("user with such credentials already exist")
 
 type Manager struct {
 	signingKey      string
@@ -41,60 +37,54 @@ type Claims struct {
 	Username string `json:"username"`
 }
 
-func (m *Manager) GenerateToken(userID int64) (string, error) {
-
+func (m *Manager) GenerateToken(userID int64, tokenType string) (*proto.TokenAndExpiresAt, error) {
+	var expiresAt int64
+	if tokenType == domain.ACCESS {
+		expiresAt = time.Now().Add(m.accessTokenTTL).Unix()
+	} else {
+		expiresAt = time.Now().Add(m.refreshTokenTTL).Unix()
+	}
 	claims := jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(m.accessTokenTTL).Unix(),
+		ExpiresAt: expiresAt,
 		Subject:   fmt.Sprint(userID),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return token.SignedString([]byte(m.signingKey))
+	generatedToken, err := token.SignedString([]byte(m.signingKey))
 
+	return &proto.TokenAndExpiresAt{
+		Uuid:      userID,
+		Token:     generatedToken,
+		ExpiresAt: timestamppb.New(time.Unix(expiresAt, 0)),
+	}, err
 }
 
-func (m *Manager) TokenValid(c *gin.Context) error {
-	tokenString := m.ExtractToken(c)
-	claims := jwt.StandardClaims{}
-	_, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+func (m *Manager) TokenValid(token string) error {
+	_, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			mylog.SugarLogger.Errorf("unexpected signing method: %v", token.Header["alg"])
 
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			return nil, domain.ErrAutorizationSigningMethod
 		}
 
 		return []byte(m.signingKey), nil
 	})
 	if err != nil {
+		mylog.SugarLogger.Errorf("cannot parse token with claims: %v", token)
+
 		return err
 	}
 
 	return nil
 }
 
-func (m *Manager) ExtractToken(c *gin.Context) string {
-	token := c.Query("token")
-	mylog.SugarLogger.Infof("token is %s", token)
-	if token != "" {
+func (m *Manager) ExtractUserIDFromToken(token string) (int64, error) {
+	if token == "" {
 
-		return token
+		return 0, domain.ErrAuthorizationInvalidToken
 	}
-	fmt.Println(c.Request.Header)
-	bearerToken := c.Request.Header.Get("Authorization")
-	if bearerToken != "" {
-		if strings.Contains(bearerToken, " ") {
-			if len(strings.Split(bearerToken, " ")) == 2 {
-
-				return strings.Split(bearerToken, " ")[1]
-			}
-		}
-	}
-	return bearerToken
-}
-
-func (m *Manager) ExtractUserIDFromToken(c *gin.Context) (int64, error) {
-	tokenString := m.ExtractToken(c)
 	claims := jwt.StandardClaims{}
-	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -105,7 +95,7 @@ func (m *Manager) ExtractUserIDFromToken(c *gin.Context) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if token.Valid {
+	if parsedToken.Valid {
 		userid, err := strconv.ParseInt(claims.Subject, 10, 64)
 		if err != nil {
 			mylog.SugarLogger.Errorf("cannot convert userid to int64, %v", err)
@@ -115,6 +105,6 @@ func (m *Manager) ExtractUserIDFromToken(c *gin.Context) (int64, error) {
 
 		return userid, nil
 	}
-	mylog.SugarLogger.Infof("token not valid")
+	mylog.SugarLogger.Infof("parsedToken not valid")
 	return 0, domain.ErrAuthorizationInvalidToken
 }

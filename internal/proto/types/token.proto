@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package types.v1beta1;
+
+option go_package = "/proto";
+
+import "google/protobuf/timestamp.proto";
+
+message Tokens {
+  string accessToken = 1;
+  string refreshToken = 2;
+}
+
+message InputRefresh {
+  string token = 1;
+}
+
+message TokenAndExpiresAt {
+  int64 uuid = 1;
+  string token = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
