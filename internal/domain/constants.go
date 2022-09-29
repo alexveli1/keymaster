@@ -6,4 +6,5 @@ const (
 	POSTGRES    = "POSTGRES"
 	MAP         = "MAP"
 	DatabaseUri = "DATABASE_URI"
+	RunAddress  = "RUN_ADDRESS"
 )

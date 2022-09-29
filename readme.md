@@ -262,7 +262,14 @@ Content-Length: 0
 
 ### Запуск
 - keymaster скомпилированный на Ubuntu 22.04 jammy расположен в папке cmd/.
-- строка запуска
+- минимальная строка запуска
 ```
  ./keymaster --d "postgres://<username>:<password>@localhost:5432/<db>"
 ```
+- рекомендуемая строка запуска
+```
+ ./keymaster --d "postgres://<username>:<password>@localhost:5432/<db>" --a "127.0.0.1:8081"
+```
+
+### Сохранение данных
+Данные при каждом запуске сервиса удаляются
