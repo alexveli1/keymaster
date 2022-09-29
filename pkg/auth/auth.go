@@ -70,7 +70,7 @@ func (m *Manager) TokenValid(token string) error {
 		return []byte(m.signingKey), nil
 	})
 	if err != nil {
-		mylog.SugarLogger.Errorf("cannot parse token with claims: %v", token)
+		mylog.SugarLogger.Errorf("cannot parse token %v, %v", token, err)
 
 		return err
 	}

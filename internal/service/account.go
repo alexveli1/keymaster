@@ -32,18 +32,18 @@ func (a *AccountService) Register(ctx context.Context, account *proto.Account) e
 	return nil
 }
 
-func (a *AccountService) Login(ctx context.Context, login *proto.Account) error {
+func (a *AccountService) Login(ctx context.Context, login *proto.Account) (*proto.Account, error) {
 	account, err := a.repo.GetAccount(ctx, login)
 	if err != nil {
 
-		return domain.ErrUserNotFound
+		return &proto.Account{}, domain.ErrUserNotFound
 	}
 	err = verifyPassword(login.PasswordHash, account.PasswordHash)
 	if err != nil {
 
-		return domain.ErrPasswordIncorrect
+		return &proto.Account{}, domain.ErrPasswordIncorrect
 	}
-	return nil
+	return account, nil
 }
 
 func (a *AccountService) GenerateTokens(ctx context.Context, uuid int64) ([]byte, string, error) {

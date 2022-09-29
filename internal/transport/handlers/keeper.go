@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/alexveli/astral-praktika/internal/domain"
 	mylog "github.com/alexveli/astral-praktika/pkg/log"
 )
 
@@ -40,8 +42,18 @@ func (h *Handler) GetSecret(c *gin.Context) {
 
 		return
 	}
-	secret, storedUserID, secretValid := h.services.SecretKeeper.ProvideSecret(c.Request.Context(), key)
-	if !secretValid {
+	secret, storedUserID, err := h.services.SecretKeeper.ProvideSecret(c.Request.Context(), key)
+	if err != nil {
+		if errors.Is(err, domain.ErrSecretHasExpired) {
+			newResponse(c, http.StatusNotAcceptable, domain.ErrSecretHasExpired)
+
+			return
+		}
+		if errors.Is(err, domain.ErrSecretAccessesCountExceeded) {
+			newResponse(c, http.StatusNotAcceptable, domain.ErrSecretAccessesCountExceeded)
+
+			return
+		}
 		newResponse(c, http.StatusInternalServerError, "cannot provide secret")
 
 		return

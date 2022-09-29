@@ -86,12 +86,17 @@ func Run() {
 }
 
 func setFlags(cfg *config.Config) {
+	var expirationPeriod string
 	flag.StringVar(&cfg.Server.RunAddress, "a", cfg.Server.RunAddress, "address for starting server")
 	flag.StringVar(&cfg.Postgres.DatabaseURI, "d", cfg.Postgres.DatabaseURI, "database connection string")
 	flag.Parse()
 	err := os.Setenv(domain.DatabaseUri, cfg.Postgres.DatabaseURI)
 	if err != nil {
-		mylog.SugarLogger.Infof("cannot set environment variable for database uri, %v", err)
+		mylog.SugarLogger.Infof("cannot set DATABASE_URI, %v", err)
+
+		return
+	}
+	if len(expirationPeriod) == 0 {
 
 		return
 	}

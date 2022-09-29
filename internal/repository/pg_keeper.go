@@ -32,7 +32,7 @@ func (r *SecretKeeperRepo) IncrementUsage(ctx context.Context, secret *proto.Sec
 		timestamppb.Now().AsTime(),
 	)
 	if err != nil {
-		mylog.SugarLogger.Errorf("error inserting access record for secret %v, %v", secret, err)
+		mylog.SugarLogger.Errorf("error inserting access record for secret %d, %v", secret.Secretid, err)
 
 		return err
 	}
@@ -140,7 +140,7 @@ func (r *SecretKeeperRepo) StoreSecret(ctx context.Context, secret *proto.Secret
 			return 0, err
 		}
 	}
-	mylog.SugarLogger.Infof("secret successfully saved, %v", secret)
+	mylog.SugarLogger.Infof("secret successfully saved, %d", secretid.Int64)
 
 	return secretid.Int64, nil
 }

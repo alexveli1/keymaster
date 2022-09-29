@@ -53,16 +53,21 @@ func (h *Handler) UserLogin(c *gin.Context) {
 
 		return
 	}
-	account := proto.Account{
+	login := proto.Account{
 		Username:     input.Login,
 		PasswordHash: h.hasher.GetHash(input.Password),
 	}
-	err := h.services.Authenticator.Login(
+	account, err := h.services.Authenticator.Login(
 		c.Request.Context(),
-		&account,
+		&login,
 	)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
+			newResponse(c, http.StatusUnauthorized, err.Error())
+
+			return
+		}
+		if errors.Is(err, domain.ErrPasswordIncorrect) {
 			newResponse(c, http.StatusUnauthorized, err.Error())
 
 			return

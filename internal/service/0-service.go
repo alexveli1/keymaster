@@ -16,13 +16,13 @@ type Authenticator interface {
 	GenerateTokens(ctx context.Context, uuid int64) ([]byte, string, error)
 	GetAccountFromToken(ctx context.Context, token string) (*proto.Account, error)
 	GetAccount(ctx context.Context, userid int64) (*proto.Account, error)
-	Login(ctx context.Context, input *proto.Account) error
+	Login(ctx context.Context, login *proto.Account) (*proto.Account, error)
 	TokenValid(token string) error
 }
 
 type SecretKeeper interface {
 	GenerateSecret(ctx context.Context, account *proto.Account) ([]byte, bool)
-	ProvideSecret(ctx context.Context, key string) ([]byte, int64, bool)
+	ProvideSecret(ctx context.Context, key string) ([]byte, int64, error)
 	ValidateKey(key string) (validKey string, valid bool)
 }
 

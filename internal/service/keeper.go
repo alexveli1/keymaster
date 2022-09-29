@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/alexveli/astral-praktika/internal/config"
+	"github.com/alexveli/astral-praktika/internal/domain"
 	"github.com/alexveli/astral-praktika/internal/proto"
 	"github.com/alexveli/astral-praktika/internal/repository"
 	"github.com/alexveli/astral-praktika/pkg/generator"
@@ -35,46 +36,46 @@ func NewSecretKeeperService(repo repository.SecretKeeper, cfgKeeper config.Keepe
 	}
 }
 
-func (a *SecretKeeperService) ProvideSecret(ctx context.Context, key string) ([]byte, int64, bool) {
+func (a *SecretKeeperService) ProvideSecret(ctx context.Context, key string) ([]byte, int64, error) {
 	secretStruct, err := a.repo.GetSecretByKey(ctx, key)
 	if err != nil {
 		mylog.SugarLogger.Errorf("cannot get secret for key %s, %v", key, err)
 
-		return nil, 0, false
+		return nil, 0, err
 	}
 	if secretExpired(secretStruct.CreatedAt.AsTime(), a.expire) {
 		a.repo.RetireSecretByID(ctx, secretStruct.Secretid)
 		mylog.SugarLogger.Warnf("cannot provide secret key %s, since secret has expired", key)
 
-		return nil, 0, false
+		return nil, 0, domain.ErrSecretHasExpired
 	}
 	count, err := a.repo.GetAccessCount(ctx, secretStruct)
 	if err != nil {
 		mylog.SugarLogger.Errorf("cannot provide secret for key %s, since cannot get access count", key)
 
-		return nil, 0, false
+		return nil, 0, err
 	}
 	if accessCountExceeded(count, a.limit) {
 		a.repo.RetireSecretByID(ctx, secretStruct.Secretid)
 		mylog.SugarLogger.Warnf("cannot provide secret for key %s, since access limit exceeded", key)
 
-		return nil, 0, false
+		return nil, 0, domain.ErrSecretAccessesCountExceeded
 	}
 	err = a.repo.IncrementUsage(ctx, secretStruct)
 	if err != nil {
 		mylog.SugarLogger.Errorf("cannot provide secret for key %s, since cannot document access", key)
 
-		return nil, 0, false
+		return nil, 0, err
 	}
-	mylog.SugarLogger.Infof("key amd secret are valid, providing")
+	mylog.SugarLogger.Infof("key and secret are valid, providing")
 
 	secret, err := json.Marshal(proto.Secret{Secret: secretStruct.Secret})
 	if err != nil {
 		mylog.SugarLogger.Errorf("cannot marshal secret, %v", err)
 
-		return nil, 0, false
+		return nil, 0, err
 	}
-	return secret, secretStruct.Uuid, true
+	return secret, secretStruct.Uuid, nil
 }
 
 func (a *SecretKeeperService) GenerateSecret(ctx context.Context, account *proto.Account) ([]byte, bool) {

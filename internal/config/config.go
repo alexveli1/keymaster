@@ -32,7 +32,7 @@ type (
 		KeyLength        int64         `env:"KEY_LENGTH" envDefault:"10"`
 	}
 	HTTPServerConfig struct {
-		RunAddress      string        `env:"RUN_ADDRESS" envDefault:"127.0.0.1:8081"`
+		RunAddress      string        `env:"RUN_ADDRESS,unset" envDefault:"127.0.0.1:8081"`
 		ShutdownTimeout time.Duration `env:"SHUTDOWN_TIMEOUT" envDefault:"2s"`
 	}
 	HashConfig struct {

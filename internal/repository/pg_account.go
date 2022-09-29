@@ -28,8 +28,11 @@ func (a *AccountRepo) GetAccount(ctx context.Context, login *proto.Account) (*pr
 	var uuid sql.NullInt64
 	var uname, pwd, refreshToken sql.NullString
 	var expiresAt sql.NullTime
-	row := a.conn.QueryRow(ctx, `SELECT uuid, username, passwordhash, refresh_token, expires_at FROM accounts 
-				WHERE username = $1 OR uuid = $2 OR refresh_token = $3`, login.Username, login.UserID, login.RefreshToken)
+	//no risk of injection since we checked that token is valid before getting account info
+	selectAccount := `SELECT uuid, username, passwordhash, refresh_token, expires_at FROM accounts 
+						WHERE username = $1 OR uuid = $2 OR refresh_token = '` +
+		login.RefreshToken + `'`
+	row := a.conn.QueryRow(ctx, selectAccount, login.Username, login.UserID)
 	err := row.Scan(&uuid, &uname, &pwd, &refreshToken, &expiresAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
